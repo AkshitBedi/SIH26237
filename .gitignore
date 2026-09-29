@@ -47,6 +47,9 @@ ENV/
 /demo/evidence/
 *.pqcpack
 
+# Generated benchmark images
+benchmarks/*.png
+
 # IDE & OS
 .vscode/
 .idea/
