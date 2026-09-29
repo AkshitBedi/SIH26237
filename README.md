@@ -2,7 +2,7 @@
 
 **SIH Problem Statement 26237** | **National-Level Working Prototype**  
 **Repository**: [AkshitBedi/SIH26237](https://github.com/AkshitBedi/SIH26237)  
-**Authors**: Team AkshitBedi  
+**Authors**: Team BroCode
 
 ---
 
