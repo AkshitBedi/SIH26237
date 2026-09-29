@@ -40,7 +40,7 @@ IDENTIFY RECIPIENT & EXPORT VERIFIABLE EVIDENCE BUNDLE
 
 ## 2. Quick Start: One-Command Live Demonstration
 
-Run the complete 8-step interactive demo in one command:
+Run the complete 8-step interactive CLI demo in one command:
 ```bash
 python demo/run_demo.py
 ```
@@ -57,7 +57,51 @@ python benchmarks/run_watermark_benchmark.py
 
 ---
 
-## 3. Cryptographic Stack & Standards
+## 3. Local Web Demonstration
+
+The prototype features a complete, air-gapped web console built with Python Flask and vanilla JavaScript.
+
+### Environment Setup & Start Command
+
+```bash
+# 1. Create and activate virtual environment (optional)
+python -m venv .venv
+
+# Windows:
+.venv\Scripts\activate
+# Linux/macOS:
+# source .venv/bin/activate
+
+# 2. Install pinned dependencies (fully offline capable)
+pip install -r requirements.txt
+
+# 3. Start the local security console
+python frontend/app.py
+```
+
+Then open your browser at:
+```
+http://127.0.0.1:5000
+```
+
+### 60-Second Judge Demo Procedure
+
+For live evaluations, follow this simple walkthrough:
+
+1. **Open Dashboard**: Navigate to `http://127.0.0.1:5000`. Observe the NIST PQC stack and air-gapped status indicators.
+2. **Select Document**: Confirm `confidential_brief.png` is selected in **SECURE DOCUMENT DISTRIBUTION**.
+3. **Select Recipients**: Keep `REC-001`, `REC-002`, and `REC-047` checked.
+4. **Encrypt & Distribute**: Click `[ ENCRYPT & DISTRIBUTE ]`. Observe single AES-256-GCM ciphertext creation, ML-KEM-768 key encapsulation, and SHA3-256 document hash.
+5. **Decrypt & Commit**: In **CONTROLLED DECRYPTION**, select recipient `REC-047` and click `[ DECRYPT & COMMIT ]`.
+6. **Observe Commit-Before-Release**: Watch the live sequence enforce ML-DSA challenge authentication, provenance signing, and 4-of-5 validator consensus on the offline ledger before releasing the watermarked document.
+7. **Show Validator Quorum**: Verify `Validator Quorum: 5/5 ✓` and note the unique `Session ID` and `Watermark ID`.
+8. **Simulate Leak**: In **FORENSIC ATTRIBUTION**, choose an attack (e.g. `Screen Capture / LCD Re-encode` or `JPEG Q70`) and click `[ SIMULATE LEAK ATTACK ]`.
+9. **Trace Leak**: Click `[ TRACE LEAK & IDENTIFY RECIPIENT ]`. Watch the automated pipeline extract the watermark, query the ledger, and verify the cryptographic proofs.
+10. **Verify Attribution & Evidence**: Observe the large green `ATTRIBUTION VERIFIED` banner displaying `Recipient: REC-047`, `ML-DSA Signature: VALID`, `Merkle Proof: VALID`, and `Validator Quorum: 5/5`. Click `[ VIEW EVIDENCE ]` to inspect the verifiable JSON evidence bundle.
+
+---
+
+## 4. Cryptographic Stack & Standards
 
 All cryptographic primitives are strictly offline and standardized by NIST:
 
@@ -71,7 +115,7 @@ All cryptographic primitives are strictly offline and standardized by NIST:
 
 ---
 
-## 4. Measured Watermark Robustness Benchmark
+## 5. Measured Watermark Robustness Benchmark
 
 Tested on a realistic 1024×1024 classified document using block-DCT mid-frequency differential modulation on the luminance ($Y$) channel with Barker preamble synchronization and Rate-3 error correction:
 
@@ -96,22 +140,22 @@ Tested on a realistic 1024×1024 classified document using block-DCT mid-frequen
 
 ---
 
-## 5. Key Architecture Features
+## 6. Key Architecture Features
 
-### 5.1 Single Document Encryption, Multi-Recipient Distribution
+### 6.1 Single Document Encryption, Multi-Recipient Distribution
 - The document ciphertext is created **only once** using AES-256-GCM.
 - Each authorized recipient receives an independent ML-KEM-768 key capsule containing the wrapped AES content key.
 - Demo supports `REC-001`, `REC-002`, and `REC-047`.
 
-### 5.2 Commit-Before-Release Invariant
+### 6.2 Commit-Before-Release Invariant
 - A decrypted document is **never released** until its signed provenance record is committed to the offline ledger by $\ge 4$ of the 5 permissioned validators.
 - If validator consensus fails or an invalid signature is presented, the release halts and plaintext is wiped from memory.
 
-### 5.3 Privacy-Preserving Watermark IDs
+### 6.3 Privacy-Preserving Watermark IDs
 - The embedded watermark contains only a 64-bit random **Watermark ID** and error-correcting codes.
 - The recipient's true identity is **never directly embedded in the watermark**, preventing passive identity harvesting. Only parties with authorized ledger query access can link the watermark to the recipient.
 
-### 5.4 One-Command Forensic Attribution
+### 6.4 One-Command Forensic Attribution
 Run:
 ```bash
 python -m src.cli.main trace demo/leaks/leaked_document.png
@@ -135,7 +179,7 @@ ATTRIBUTION:           VERIFIED
 
 ---
 
-## 6. CLI Command Reference
+## 7. CLI Command Reference
 
 | Command | Description |
 | :--- | :--- |
@@ -152,7 +196,7 @@ ATTRIBUTION:           VERIFIED
 
 ---
 
-## 7. Security Philosophy, Limitations & Roadmap
+## 8. Security Philosophy, Limitations & Roadmap
 
 ### Honest Security Boundary
 This prototype does not claim to prevent an attacker from reverse-engineering the client binary or dumping raw memory on a compromised endpoint.
@@ -169,13 +213,13 @@ For full details on attacker models and assumptions, see [THREAT_MODEL.md](file:
 
 ---
 
-## 8. Directory Structure
+## 9. Directory Structure
 
 ```text
 SIH-26237/
 ├── .gitignore                      # Secrets and temporary artifact exclusions
 ├── README.md                       # Master system documentation
-├── requirements.txt                # Pinned offline dependencies
+├── requirements.txt                # Pinned offline dependencies (including Flask)
 ├── THREAT_MODEL.md                 # Formal threat model and security specifications
 ├── docs/
 │   ├── architecture.md             # Detailed architecture and Mermaid protocols
@@ -184,6 +228,10 @@ SIH-26237/
 ├── config/
 │   ├── ledger_config.json          # Consortium validator configuration
 │   └── recipients.json             # Example registered recipient metadata
+├── frontend/
+│   ├── app.py                      # Local Flask server
+│   ├── templates/index.html        # Single-page cybersecurity console
+│   └── static/                     # CSS styling & vanilla JS controller
 ├── src/
 │   ├── crypto/                     # ML-KEM-768, ML-DSA-65, AES-GCM, SHA3, Canonicalization
 │   ├── identity/                   # Keystore and ML-DSA Challenge-Response Auth

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIH 26237 | Cryptographic Attribution & Decryption Provenance</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <div class="brand-group">
+        <div class="brand-title">
+          <span class="sih-badge">SIH 26237</span>
+          <span>Cryptographic Attribution & Immutable Decryption Provenance</span>
+        </div>
+        <div class="brand-subtitle">AIR-GAPPED • POST-QUANTUM • TAMPER-EVIDENT</div>
+      </div>
+      <div class="header-actions">
+        <div class="airgap-pill">
+          <div class="pulsing-dot"></div>
+          <span>OFFLINE AIR-GAP ACTIVE</span>
+        </div>
+        <button id="btn-full-demo" class="btn btn-primary btn-sm">
+          <span>⚡</span> RUN FULL DEMO
+        </button>
+        <button id="btn-reset" class="btn btn-secondary btn-sm" title="Re-initialize Keystores and Demo Canvas">
+          <span>↺</span> RESET
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- TOP SECURITY STACK CARD (INFORMATIONAL) -->
+    <section class="security-stack-bar">
+      <div class="stack-title">NIST Post-Quantum Cryptographic Stack & Permissioned Consensus</div>
+      <div class="stack-grid">
+        <div class="stack-item">
+          <div class="label">Key Encapsulation (KEM)</div>
+          <div class="value">NIST FIPS 203 ML-KEM-768</div>
+        </div>
+        <div class="stack-item">
+          <div class="label">Digital Signatures (DSA)</div>
+          <div class="value">NIST FIPS 204 ML-DSA-65</div>
+        </div>
+        <div class="stack-item">
+          <div class="label">Payload Encryption</div>
+          <div class="value">AES-256-GCM (NIST SP 800-38D)</div>
+        </div>
+        <div class="stack-item">
+          <div class="label">Cryptographic Hashing</div>
+          <div class="value">SHA3-256 (NIST FIPS 202)</div>
+        </div>
+        <div class="stack-item">
+          <div class="label">Immutable DLT</div>
+          <div class="value">Offline Permissioned Ledger</div>
+        </div>
+        <div class="stack-item">
+          <div class="label">Byzantine Consensus</div>
+          <div class="value">4-of-5 Validator Quorum</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PIPELINE VISUAL -->
+    <section class="pipeline-section">
+      <div class="pipeline-header">
+        <div class="card-title">
+          <span class="card-title-icon">◈</span> End-to-End Cryptographic & Provenance Pipeline
+        </div>
+        <span class="chip chip-info" id="pipeline-status-chip">SYSTEM READY</span>
+      </div>
+      <div class="pipeline-track">
+        <div class="pipeline-step" id="p-encrypt">
+          <div class="step-circle">1</div>
+          <div class="step-label">Encrypt</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step" id="p-distribute">
+          <div class="step-circle">2</div>
+          <div class="step-label">Distribute</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step" id="p-authenticate">
+          <div class="step-circle">3</div>
+          <div class="step-label">Authenticate</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step" id="p-commit">
+          <div class="step-circle">4</div>
+          <div class="step-label">Commit</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step" id="p-watermark">
+          <div class="step-circle">5</div>
+          <div class="step-label">Watermark</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step" id="p-release">
+          <div class="step-circle">6</div>
+          <div class="step-label">Release</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step" id="p-leak">
+          <div class="step-circle">7</div>
+          <div class="step-label">Leak</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step" id="p-trace">
+          <div class="step-circle">8</div>
+          <div class="step-label">Trace</div>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="pipeline-step" id="p-attribute">
+          <div class="step-circle">9</div>
+          <div class="step-label">Attribute</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TWO COLUMN CONSOLE GRID: ENCRYPT & DECRYPT -->
+    <div class="console-grid">
+
+      <!-- SECTION 1: SECURE DOCUMENT DISTRIBUTION -->
+      <section class="card" id="card-encrypt">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">🔒</span> SECURE DOCUMENT DISTRIBUTION
+          </div>
+          <span class="chip chip-info">MULTI-RECIPIENT PQC</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Document Payload</label>
+          <div class="form-input" style="background:#0a101d; border-color:var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+            <span>📄 confidential_brief.png (Classified Operational Memo)</span>
+            <span class="chip chip-success" style="padding:2px 8px;">1024×1024</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Target Authorized Recipients (ML-KEM-768 Capsules)</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item">
+              <input type="checkbox" id="rec-001" checked> REC-001 (Command Alpha)
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="rec-002" checked> REC-002 (Tactical Bravo)
+            </label>
+            <label class="checkbox-item">
+              <input type="checkbox" id="rec-047" checked> REC-047 (Strategic Terminal)
+            </label>
+          </div>
+        </div>
+
+        <div style="margin-top:auto; padding-top:16px;">
+          <button id="btn-encrypt" class="btn btn-primary" style="width:100%;">
+            <span>🛡️</span> ENCRYPT & DISTRIBUTE
+          </button>
+        </div>
+
+        <!-- Encrypt Result Display -->
+        <div id="encrypt-result" class="result-box success" style="display:none;">
+          <div class="result-title" style="color:var(--status-success);">
+            <span>✓</span> DOCUMENT ENCRYPTED & PACKAGED
+          </div>
+          <div class="result-grid">
+            <div class="result-cell" style="grid-column: 1 / -1;">
+              <div class="k">Document SHA3-256 Hash</div>
+              <div class="v" id="enc-doc-hash">--</div>
+            </div>
+            <div class="result-cell">
+              <div class="k">Encapsulated Recipients</div>
+              <div class="v" id="enc-recipients">--</div>
+            </div>
+            <div class="result-cell">
+              <div class="k">Distribution Package</div>
+              <div class="v" id="enc-pkg-path">--</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:12px;">
+            <span class="chip chip-success">AES-256-GCM ✓</span>
+            <span class="chip chip-success">ML-KEM-768 ✓</span>
+            <span class="chip chip-success">Sender ML-DSA-65 ✓</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: CONTROLLED DECRYPTION & COMMIT-BEFORE-RELEASE -->
+      <section class="card" id="card-decrypt">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">🔑</span> CONTROLLED DECRYPTION
+          </div>
+          <span class="chip chip-info">COMMIT-BEFORE-RELEASE</span>
+        </div>
+
+        <!-- Prominent Commit-Before-Release Visual -->
+        <div class="commit-gate-banner">
+          <div class="commit-gate-flow">
+            <span>PROVENANCE COMMIT</span>
+            <span>→</span>
+            <span>4 / 5 VALIDATORS</span>
+            <span>→</span>
+            <span>LEDGER COMMITTED</span>
+            <span>→</span>
+            <span>WATERMARK EMBEDDED</span>
+            <span>→</span>
+            <span>DOCUMENT RELEASED</span>
+          </div>
+          <div class="commit-gate-note">
+            "Commit-Before-Release Enforced: No official document release occurs before provenance commitment."
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Decrypting Recipient Identity</label>
+          <select id="decrypt-recipient-select" class="form-select">
+            <option value="REC-047" selected>REC-047 (Strategic Air-Gap Operational Terminal)</option>
+            <option value="REC-001">REC-001 (Command Operational Cell - Alpha)</option>
+            <option value="REC-002">REC-002 (Tactical Intelligence Unit - Bravo)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Byzantine Validator Simulation (Optional)</label>
+          <select id="faulty-validator-select" class="form-select">
+            <option value="" selected>Normal Operation: 5/5 Active Validators</option>
+            <option value="VAL-05">1 Faulty Validator (VAL-05 Offline - 4/5 Quorum Survives)</option>
+            <option value="VAL-04,VAL-05">2 Faulty Validators (VAL-04, VAL-05 - Quorum FAILS / Abort Release)</option>
+          </select>
+        </div>
+
+        <button id="btn-decrypt" class="btn btn-success" style="width:100%; margin-top:12px;">
+          <span>⚡</span> DECRYPT & COMMIT
+        </button>
+
+        <!-- Live Step Progression -->
+        <div id="decrypt-flow" class="status-flow-box" style="display:none;">
+          <div class="flow-step" id="df-auth">1. AUTHENTICATING RECIPIENT (ML-DSA-65 CHALLENGE)</div>
+          <div class="flow-step" id="df-sess">2. CREATING SESSION & WATERMARK ID</div>
+          <div class="flow-step" id="df-sign">3. SIGNING PROVENANCE (ML-DSA-65 PRIVATE KEY)</div>
+          <div class="flow-step" id="df-ledger">4. COMMITTING TO OFFLINE PERMISSIONED LEDGER</div>
+          <div class="flow-step" id="df-quorum">5. 4-OF-5 VALIDATOR QUORUM ATTESTATION</div>
+          <div class="flow-step" id="df-watermark">6. EMBEDDING INVISIBLE FORENSIC WATERMARK</div>
+          <div class="flow-step" id="df-release">7. RELEASE AUTHORIZED</div>
+        </div>
+
+        <!-- Decrypt Result Card -->
+        <div id="decrypt-result" class="result-box success" style="display:none;">
+          <div class="result-title" style="color:var(--status-success);">
+            <span>✓</span> DECRYPTION AUTHORIZED & WATERMARKED
+          </div>
+          <div class="result-grid">
+            <div class="result-cell">
+              <div class="k">Recipient</div>
+              <div class="v" id="dec-rec">--</div>
+            </div>
+            <div class="result-cell">
+              <div class="k">Session ID</div>
+              <div class="v" id="dec-sess">--</div>
+            </div>
+            <div class="result-cell">
+              <div class="k">Watermark ID</div>
+              <div class="v" id="dec-wmid" style="color:var(--accent-cyan);">--</div>
+            </div>
+            <div class="result-cell">
+              <div class="k">ML-DSA Signature</div>
+              <div class="v success-text" id="dec-sig">VALID ✓</div>
+            </div>
+            <div class="result-cell">
+              <div class="k">Ledger Block Height</div>
+              <div class="v" id="dec-block">#--</div>
+            </div>
+            <div class="result-cell">
+              <div class="k">Validator Quorum</div>
+              <div class="v success-text" id="dec-quorum">5/5 ✓</div>
+            </div>
+          </div>
+          <div class="preview-box">
+            <img id="dec-img-preview" src="" alt="Decrypted Document Preview">
+            <div class="preview-caption">Released Plaintext Document with Embedded Session Watermark</div>
+          </div>
+        </div>
+
+        <!-- Decrypt Error Card (For Invariant Violation) -->
+        <div id="decrypt-error" class="result-box danger" style="display:none;">
+          <div class="result-title" style="color:var(--status-danger);">
+            <span>✗</span> COMMIT-BEFORE-RELEASE INVARIANT HALT
+          </div>
+          <div style="font-size:0.82rem; color:#fca5a5;" id="dec-error-text">
+            Ledger commitment failed. Document release strictly aborted.
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- SECTION 3: FORENSIC ATTRIBUTION (THE MAIN WOW MOMENT) -->
+    <section class="card full-width forensic-hero" id="card-trace">
+      <div class="card-header">
+        <div class="card-title" style="font-size:1.15rem;">
+          <span class="card-title-icon">🔎</span> FORENSIC ATTRIBUTION & CRYPTOGRAPHIC VERIFICATION
+        </div>
+        <span class="chip chip-info">ONE-COMMAND TRACE PIPELINE</span>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 320px 1fr; gap:24px;">
+
+        <!-- Left: Leak Selection / Simulator -->
+        <div>
+          <div class="form-group">
+            <label class="form-label">Simulate Exfiltration Channel</label>
+            <select id="leak-attack-select" class="form-select">
+              <option value="screenshot" selected>Screen Capture / LCD Re-encode</option>
+              <option value="jpeg70">Severe JPEG Compression (Q70)</option>
+              <option value="crop5">Moderate Crop (5% Shift)</option>
+              <option value="blur">Gaussian Blur (Sensor Defocus)</option>
+              <option value="noise">Sensor Noise (Low-Light Capture)</option>
+            </select>
+          </div>
+
+          <button id="btn-apply-leak" class="btn btn-secondary btn-sm" style="width:100%; margin-bottom:12px;">
+            <span>📸</span> SIMULATE LEAK ATTACK
+          </button>
+
+          <div class="preview-box">
+            <img id="leak-img-preview" src="/api/image/leaked" alt="Leaked File Preview">
+            <div class="preview-caption" id="leak-caption">Leaked Document (demo/leaks/leaked_document.png)</div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <button id="btn-trace" class="btn btn-primary" style="width:100%; font-size:1rem; padding:14px;">
+              <span>🔍</span> TRACE LEAK & IDENTIFY RECIPIENT
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Trace Steps & Large Attribution Result Card -->
+        <div>
+          <!-- Trace Step Flow -->
+          <div id="trace-flow" class="status-flow-box" style="display:none; margin-top:0;">
+            <div class="flow-step" id="tf-extract">1. TRANSFORM-DOMAIN WATERMARK EXTRACTION (BARKER SYNC LOCK)</div>
+            <div class="flow-step" id="tf-ecc">2. FORWARD ERROR CORRECTION & CRC-16 INTEGRITY CHECK</div>
+            <div class="flow-step" id="tf-lookup">3. OFFLINE PERMISSIONED LEDGER TRANSACTION QUERY</div>
+            <div class="flow-step" id="tf-dsa">4. RECIPIENT ML-DSA-65 SIGNATURE VERIFICATION</div>
+            <div class="flow-step" id="tf-merkle">5. SHA3-256 MERKLE INCLUSION PROOF VERIFICATION</div>
+            <div class="flow-step" id="tf-quorum">6. 4-OF-5 VALIDATOR CONSENSUS QUORUM VALIDATION</div>
+            <div class="flow-step" id="tf-attr">7. FORENSIC ATTRIBUTION RESOLUTION</div>
+          </div>
+
+          <!-- SUCCESS RESULT CARD -->
+          <div id="trace-result-success" style="display:none;">
+            <div class="forensic-banner verified">
+              <h2>ATTRIBUTION VERIFIED</h2>
+              <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">
+                Cryptographically Verifiable Provenance Anchored to Offline Permissioned Ledger
+              </div>
+            </div>
+
+            <div class="result-grid" style="grid-template-columns: repeat(3, 1fr);">
+              <div class="result-cell">
+                <div class="k">Identified Recipient</div>
+                <div class="v" id="trace-rec" style="color:#38bdf8; font-size:1.1rem; font-weight:800;">--</div>
+              </div>
+              <div class="result-cell">
+                <div class="k">Decryption Session</div>
+                <div class="v" id="trace-sess">--</div>
+              </div>
+              <div class="result-cell">
+                <div class="k">Extracted Watermark ID</div>
+                <div class="v" id="trace-wmid" style="color:var(--accent-cyan);">--</div>
+              </div>
+              <div class="result-cell">
+                <div class="k">Document Visual Match</div>
+                <div class="v success-text" id="trace-doc-match">✓ VERIFIED</div>
+              </div>
+              <div class="result-cell">
+                <div class="k">Recipient ML-DSA Signature</div>
+                <div class="v success-text" id="trace-sig">✓ VALID</div>
+              </div>
+              <div class="result-cell">
+                <div class="k">Merkle Inclusion Proof</div>
+                <div class="v success-text" id="trace-merkle">✓ VALID</div>
+              </div>
+              <div class="result-cell">
+                <div class="k">Validator Quorum</div>
+                <div class="v success-text" id="trace-quorum">✓ 5/5 VALID</div>
+              </div>
+              <div class="result-cell">
+                <div class="k">Block Anchor</div>
+                <div class="v" id="trace-block">#--</div>
+              </div>
+              <div class="result-cell">
+                <div class="k">Measured BER</div>
+                <div class="v" id="trace-ber">0.00%</div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:14px 16px; background:var(--bg-card); border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+              <div>
+                <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Evidence Bundle:</span>
+                <span id="evidence-filename" style="font-family:var(--font-mono); font-size:0.85rem; color:var(--text-primary); margin-left:8px;">--</span>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button id="btn-view-evidence" class="btn btn-secondary btn-sm">
+                  <span>👁️</span> VIEW EVIDENCE
+                </button>
+                <a id="link-download-evidence" href="#" class="btn btn-primary btn-sm" download>
+                  <span>⬇️</span> DOWNLOAD EVIDENCE
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- FAILED RESULT CARD -->
+          <div id="trace-result-failed" style="display:none;">
+            <div class="forensic-banner failed">
+              <h2>ATTRIBUTION NOT VERIFIED</h2>
+              <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;" id="trace-fail-subtitle">
+                Watermark Missing or Cryptographic Verification Failed
+              </div>
+            </div>
+            <div class="result-grid">
+              <div class="result-cell">
+                <div class="k">Watermark Status</div>
+                <div class="v danger-text" id="trace-fail-wm">NOT FOUND</div>
+              </div>
+              <div class="result-cell">
+                <div class="k">Document Status</div>
+                <div class="v danger-text" id="trace-fail-doc">NOT VERIFIED</div>
+              </div>
+              <div class="result-cell">
+                <div class="k">Attributed Recipient</div>
+                <div class="v danger-text">UNKNOWN (None Assigned)</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <!-- MODAL FOR VIEWING EVIDENCE REPORT -->
+  <div id="evidence-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="font-weight:700; font-size:1rem; color:var(--accent-cyan); display:flex; align-items:center; gap:8px;">
+          <span>📋</span> Cryptographic Forensic Evidence Bundle
+        </div>
+        <button id="btn-close-modal" class="btn btn-secondary btn-sm">✕ Close</button>
+      </div>
+      <div class="modal-body" id="modal-evidence-content">
+        <!-- Loaded via JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <a id="btn-modal-download" href="#" class="btn btn-primary btn-sm" download>
+          <span>⬇️</span> Download JSON Bundle
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
