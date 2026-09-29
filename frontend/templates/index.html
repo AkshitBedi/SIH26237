@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SIH 26237 | Auditable Decryption Provenance</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=problemset-light-20260930">
 </head>
 <body>
 
@@ -140,9 +140,16 @@
 
         <div class="form-group">
           <label class="form-label">Document Payload</label>
-          <div class="form-input" style="background:#0a101d; border-color:var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
-            <span>📄 confidential_brief.png (Classified Operational Memo)</span>
-            <span class="chip chip-success" style="padding:2px 8px;">1024×1024</span>
+          <div class="payload-card">
+            <img class="payload-thumb" src="/api/image/sample" alt="Preview of confidential_brief.png, the classified operational memo" width="112" height="112">
+            <div class="payload-meta">
+              <div class="payload-name">confidential_brief.png</div>
+              <div class="payload-description">Classified Operational Memo</div>
+              <div class="payload-tags">
+                <span class="chip chip-success" style="padding:2px 8px;">1024 × 1024</span>
+                <span class="payload-format">PNG image</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -298,7 +305,7 @@
           <div class="result-title" style="color:var(--status-danger);">
             <span>!</span> DECRYPTION STOPPED • NO RELEASE AUTHORIZED
           </div>
-          <div style="font-size:0.82rem; color:#fca5a5;" id="dec-error-text">
+          <div style="font-size:0.82rem; color:var(--status-danger);" id="dec-error-text">
             Ledger commitment failed. Document release strictly aborted.
           </div>
         </div>
@@ -372,7 +379,7 @@
             <div class="result-grid" style="grid-template-columns: repeat(3, 1fr);">
               <div class="result-cell">
                 <div class="k">Identified Recipient</div>
-                <div class="v" id="trace-rec" style="color:#38bdf8; font-size:1.1rem; font-weight:800;">--</div>
+                <div class="v" id="trace-rec" style="color:var(--status-info); font-size:1.1rem; font-weight:800;">--</div>
               </div>
               <div class="result-cell">
                 <div class="k">Decryption Session</div>
