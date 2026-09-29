@@ -300,6 +300,12 @@ header.app-header {
   color: #fff;
 }
 
+.pipeline-step.failed .step-circle {
+  background: var(--status-danger);
+  border-color: var(--status-danger);
+  color: #fff;
+}
+
 .step-label {
   font-size: 0.7rem;
   font-weight: 700;
@@ -316,6 +322,8 @@ header.app-header {
 .pipeline-step.completed .step-label {
   color: var(--status-success);
 }
+
+.pipeline-step.failed .step-label { color: var(--status-danger); }
 
 .step-arrow {
   color: var(--border-bright);
@@ -494,6 +502,17 @@ header.app-header {
   content: "✓";
   color: var(--status-success);
   font-weight: bold;
+}
+
+.flow-step.failed {
+  color: #fecaca;
+  background: var(--status-danger-bg);
+}
+
+.flow-step.failed::after {
+  content: "×";
+  color: var(--status-danger);
+  font-weight: 800;
 }
 
 /* RESULT DETAILS CARD */
@@ -717,4 +736,125 @@ header.app-header {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* Clear live feedback and responsive layouts */
+[hidden] { display: none !important; }
+
+:focus-visible {
+  outline: 3px solid var(--accent-cyan);
+  outline-offset: 3px;
+}
+
+.btn:disabled {
+  cursor: wait;
+  opacity: 0.68;
+  box-shadow: none;
+}
+
+.service-detail {
+  color: var(--text-secondary);
+  font: 0.72rem var(--font-mono);
+  white-space: nowrap;
+}
+
+.notice {
+  margin: 18px 0 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.notice-success {
+  color: #a7f3d0;
+  border-color: rgba(16, 185, 129, 0.65);
+  background: var(--status-success-bg);
+}
+
+.notice-error {
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.65);
+  background: var(--status-danger-bg);
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.preview-empty {
+  width: 100%;
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  border: 1px dashed var(--border-bright);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  text-align: center;
+  font-size: 0.86rem;
+}
+
+.trace-grid {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.8fr);
+  gap: 24px;
+}
+
+.trace-grid > * { min-width: 0; }
+
+.pipeline-track { scrollbar-color: var(--border-bright) var(--bg-surface); }
+
+.commit-gate-flow { flex-wrap: wrap; gap: 8px 12px; }
+
+.commit-gate-note { line-height: 1.55; }
+
+.result-cell .v { line-height: 1.45; }
+
+.modal-card { overflow: hidden; }
+
+@media (max-width: 1100px) {
+  .header-inner { align-items: flex-start; gap: 14px; }
+  .header-actions { justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+  .trace-grid { grid-template-columns: minmax(0, 1fr); }
+  .pipeline-track {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    overflow: visible;
+  }
+  .step-arrow { display: none; }
+}
+
+@media (max-width: 760px) {
+  .container { padding: 0 14px; }
+  header.app-header { position: static; }
+  .header-inner { flex-direction: column; }
+  .brand-title { align-items: flex-start; font-size: 1.05rem; }
+  .brand-subtitle { font-size: 0.66rem; letter-spacing: 1px; }
+  .header-actions { justify-content: flex-start; }
+  .service-detail { display: none; }
+  .security-stack-bar, .pipeline-section, .card { padding: 16px; }
+  .pipeline-header { align-items: flex-start; gap: 10px; flex-direction: column; }
+  .pipeline-track { justify-content: initial; }
+  .pipeline-step { min-width: 82px; }
+  .step-label { font-size: 0.62rem; }
+  .commit-gate-flow { justify-content: flex-start; }
+  .result-grid[style*="repeat(3"] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .card-header { align-items: flex-start; gap: 10px; flex-direction: column; }
+  .modal-card { width: calc(100% - 24px); max-height: 90vh; }
+  .modal-header, .modal-body, .modal-footer { padding-left: 14px; padding-right: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

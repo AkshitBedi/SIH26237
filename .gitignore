@@ -44,6 +44,7 @@ ENV/
 /demo/leaks/
 /demo/packages/
 /demo/evidence/
+/demo/runs/
 *.pqcpack
 
 # Generated benchmark & demo image artifacts

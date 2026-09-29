@@ -1,411 +1,363 @@
-/**
- * SIH Problem Statement 26237: Cryptographic Attribution & Provenance Console.
- * Vanilla JavaScript client-side controller.
- * Interfaces with real backend endpoints.
- */
-
 document.addEventListener("DOMContentLoaded", () => {
-  // Elements
-  const btnEncrypt = document.getElementById("btn-encrypt");
-  const btnDecrypt = document.getElementById("btn-decrypt");
-  const btnTrace = document.getElementById("btn-trace");
-  const btnApplyLeak = document.getElementById("btn-apply-leak");
-  const btnFullDemo = document.getElementById("btn-full-demo");
-  const btnReset = document.getElementById("btn-reset");
+  const byId = (id) => document.getElementById(id);
+  const buttons = {
+    encrypt: byId("btn-encrypt"),
+    decrypt: byId("btn-decrypt"),
+    leak: byId("btn-apply-leak"),
+    trace: byId("btn-trace"),
+    fullDemo: byId("btn-full-demo"),
+    refresh: byId("btn-reset"),
+    viewEvidence: byId("btn-view-evidence"),
+    closeModal: byId("btn-close-modal"),
+  };
+  let evidenceBundle = null;
+  let evidenceReport = "";
+  let busy = false;
 
-  const btnViewEvidence = document.getElementById("btn-view-evidence");
-  const btnCloseModal = document.getElementById("btn-close-modal");
-  const evidenceModal = document.getElementById("evidence-modal");
-  const modalContent = document.getElementById("modal-evidence-content");
-  const linkDownloadEvidence = document.getElementById("link-download-evidence");
-  const btnModalDownload = document.getElementById("btn-modal-download");
+  function notice(message, kind = "info") {
+    const box = byId("app-notice");
+    box.textContent = message;
+    box.className = `notice notice-${kind}`;
+    box.hidden = false;
+    box.focus();
+  }
 
-  let currentEvidenceBundle = null;
-  let currentEvidenceReport = "";
+  function clearNotice() {
+    byId("app-notice").hidden = true;
+  }
 
-  // Pipeline Stage Helpers
-  function setPipelineStep(stepId, state) {
-    const el = document.getElementById(stepId);
+  async function requestJSON(url, options = {}) {
+    const response = await fetch(url, options);
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error(`The local service returned an unreadable response (${response.status}).`);
+    }
+    if (!response.ok || data.success === false) {
+      const error = new Error(data.error || `The local service returned ${response.status}.`);
+      error.type = data.error_type;
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  }
+
+  function postJSON(url, payload) {
+    return requestJSON(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  }
+
+  function setBusy(active, button = null, label = "Working…") {
+    busy = active;
+    Object.values(buttons).forEach((item) => {
+      if (item) item.disabled = active;
+    });
+    if (button) {
+      button.dataset.originalLabel ||= button.innerHTML;
+      button.innerHTML = active ? `<span class="spinner" aria-hidden="true"></span>${label}` : button.dataset.originalLabel;
+    }
+    document.body.setAttribute("aria-busy", String(active));
+  }
+
+  function jsonButtonState(button, label) {
+    if (button) button.innerHTML = label;
+  }
+
+  function setPipelineStep(id, state) {
+    const el = byId(id);
     if (!el) return;
-    el.classList.remove("active", "completed");
-    if (state === "active") el.classList.add("active");
-    if (state === "completed") el.classList.add("completed");
+    el.classList.remove("active", "completed", "failed");
+    if (state) el.classList.add(state);
+  }
+
+  function setPipeline(ids, state) {
+    ids.forEach((id) => setPipelineStep(id, state));
   }
 
   function resetPipeline() {
-    const steps = [
-      "p-encrypt", "p-distribute", "p-authenticate", "p-commit",
-      "p-watermark", "p-release", "p-leak", "p-trace", "p-attribute"
-    ];
-    steps.forEach(s => {
-      const el = document.getElementById(s);
-      if (el) el.classList.remove("active", "completed");
-    });
-    document.getElementById("pipeline-status-chip").textContent = "SYSTEM READY";
-    document.getElementById("pipeline-status-chip").className = "chip chip-info";
+    setPipeline(["p-encrypt", "p-distribute", "p-authenticate", "p-commit", "p-watermark", "p-release", "p-leak", "p-trace", "p-attribute"], "");
+    byId("pipeline-status-chip").textContent = "READY • LOCAL SERVICE";
+    byId("pipeline-status-chip").className = "chip chip-info";
   }
 
-  // Refresh status on load
-  function fetchStatus() {
-    fetch("/api/status")
-      .then(res => res.json())
-      .then(data => {
-        if (data.has_decrypted) {
-          const decImg = document.getElementById("dec-img-preview");
-          if (decImg) decImg.src = `/api/image/decrypted?t=${Date.now()}`;
-        }
-        if (data.has_leak) {
-          const leakImg = document.getElementById("leak-img-preview");
-          if (leakImg) leakImg.src = `/api/image/leaked?t=${Date.now()}`;
-        }
-      })
-      .catch(err => console.error("Status fetch error:", err));
+  function resetFlow(ids) {
+    ids.forEach((id) => {
+      const el = byId(id);
+      if (el) el.className = "flow-step";
+    });
   }
 
-  fetchStatus();
+  function setImage(id, url) {
+    const image = byId(id);
+    image.onload = () => { image.hidden = false; image.closest(".preview-box").querySelector(".preview-empty")?.setAttribute("hidden", ""); };
+    image.onerror = () => {
+      image.hidden = true;
+      const empty = image.closest(".preview-box").querySelector(".preview-empty");
+      if (empty) empty.hidden = false;
+    };
+    image.src = url;
+  }
 
-  // RESET / INITIALIZE
-  btnReset.addEventListener("click", () => {
-    btnReset.disabled = true;
-    fetch("/api/setup", { method: "POST" })
-      .then(res => res.json())
-      .then(data => {
-        btnReset.disabled = false;
-        resetPipeline();
-        document.getElementById("encrypt-result").style.display = "none";
-        document.getElementById("decrypt-result").style.display = "none";
-        document.getElementById("decrypt-error").style.display = "none";
-        document.getElementById("decrypt-flow").style.display = "none";
-        document.getElementById("trace-result-success").style.display = "none";
-        document.getElementById("trace-result-failed").style.display = "none";
-        document.getElementById("trace-flow").style.display = "none";
-        fetchStatus();
-        alert("Demo environment, PQC keystores, and canvas successfully reset.");
-      })
-      .catch(err => {
-        btnReset.disabled = false;
-        alert("Reset failed: " + err.message);
-      });
-  });
+  function clearResults() {
+    ["encrypt-result", "decrypt-result", "decrypt-error", "trace-result-success", "trace-result-failed"].forEach((id) => { byId(id).hidden = true; });
+    byId("decrypt-flow").hidden = true;
+    byId("trace-flow").hidden = true;
+    byId("dec-img-preview").hidden = true;
+    byId("leak-img-preview").hidden = true;
+    byId("decrypted-empty").hidden = false;
+    byId("leak-empty").hidden = false;
+    byId("card-trace").classList.remove("verified", "failed");
+    evidenceBundle = null;
+    evidenceReport = "";
+    resetPipeline();
+  }
 
-  // STEP 1: ENCRYPT & DISTRIBUTE
-  btnEncrypt.addEventListener("click", () => {
-    const recipients = [];
-    if (document.getElementById("rec-001").checked) recipients.push("REC-001");
-    if (document.getElementById("rec-002").checked) recipients.push("REC-002");
-    if (document.getElementById("rec-047").checked) recipients.push("REC-047");
-
-    if (recipients.length === 0) {
-      alert("Please select at least one recipient.");
-      return;
+  async function refreshStatus() {
+    const data = await requestJSON("/api/status");
+    byId("service-status").textContent = data.status === "ONLINE" ? "LOCAL SERVICE READY" : "LOCAL SERVICE UNAVAILABLE";
+    byId("service-status").className = `chip ${data.status === "ONLINE" ? "chip-success" : "chip-danger"}`;
+    byId("ledger-height").textContent = `Ledger height ${data.ledger_height}`;
+    if (data.has_decrypted) {
+      setImage("dec-img-preview", `/api/image/decrypted?recipient=REC-047&t=${Date.now()}`);
     }
+    if (data.has_leak) setImage("leak-img-preview", `/api/image/leaked?t=${Date.now()}`);
+    return data;
+  }
 
-    btnEncrypt.disabled = true;
-    btnEncrypt.innerHTML = "<span>⚙️</span> Encrypting with ML-KEM-768...";
-    setPipelineStep("p-encrypt", "active");
+  function hideTraceResults() {
+    byId("trace-result-success").hidden = true;
+    byId("trace-result-failed").hidden = true;
+  }
 
-    fetch("/api/encrypt", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recipients: recipients })
-    })
-      .then(res => res.json())
-      .then(data => {
-        btnEncrypt.disabled = false;
-        btnEncrypt.innerHTML = "<span>🛡️</span> ENCRYPT & DISTRIBUTE";
+  function renderTrace(data) {
+    const checks = data.verified && data.attribution_status === "VERIFIED";
+    byId("trace-result-success").hidden = !checks;
+    byId("trace-result-failed").hidden = checks;
+    byId("card-trace").classList.toggle("verified", checks);
+    byId("card-trace").classList.toggle("failed", !checks);
+    byId("pipeline-status-chip").textContent = checks ? `ATTRIBUTION VERIFIED • ${data.recipient}` : `ATTRIBUTION ${data.attribution_status || "NOT VERIFIED"}`;
+    byId("pipeline-status-chip").className = `chip ${checks ? "chip-success" : "chip-danger"}`;
 
-        if (!data.success) {
-          alert("Encryption failed: " + data.error);
-          setPipelineStep("p-encrypt", "");
-          return;
-        }
-
-        // Update UI
-        setPipelineStep("p-encrypt", "completed");
-        setPipelineStep("p-distribute", "completed");
-
-        document.getElementById("enc-doc-hash").textContent = data.document_hash;
-        document.getElementById("enc-recipients").textContent = data.recipients.join(", ");
-        document.getElementById("enc-pkg-path").textContent = data.package_path;
-        document.getElementById("encrypt-result").style.display = "block";
-      })
-      .catch(err => {
-        btnEncrypt.disabled = false;
-        btnEncrypt.innerHTML = "<span>🛡️</span> ENCRYPT & DISTRIBUTE";
-        alert("Encryption error: " + err.message);
-      });
-  });
-
-  // STEP 2: DECRYPT & COMMIT (COMMIT-BEFORE-RELEASE)
-  btnDecrypt.addEventListener("click", async () => {
-    const recipientId = document.getElementById("decrypt-recipient-select").value;
-    const faultyValStr = document.getElementById("faulty-validator-select").value;
-    const faultyValidators = faultyValStr ? faultyValStr.split(",") : [];
-
-    btnDecrypt.disabled = true;
-    document.getElementById("decrypt-result").style.display = "none";
-    document.getElementById("decrypt-error").style.display = "none";
-
-    const flowBox = document.getElementById("decrypt-flow");
-    flowBox.style.display = "block";
-
-    const flowSteps = [
-      { id: "df-auth", text: "AUTHENTICATING RECIPIENT (ML-DSA-65 CHALLENGE)", delay: 350 },
-      { id: "df-sess", text: "CREATING SESSION & WATERMARK ID", delay: 300 },
-      { id: "df-sign", text: "SIGNING PROVENANCE (ML-DSA-65 PRIVATE KEY)", delay: 350 },
-      { id: "df-ledger", text: "COMMITTING TO OFFLINE PERMISSIONED LEDGER", delay: 400 },
-      { id: "df-quorum", text: "4-OF-5 VALIDATOR QUORUM ATTESTATION", delay: 450 },
-      { id: "df-watermark", text: "EMBEDDING INVISIBLE FORENSIC WATERMARK", delay: 350 },
-      { id: "df-release", text: "RELEASE AUTHORIZED", delay: 200 }
+    const stages = [
+      ["tf-extract", Boolean(data.watermark_found)],
+      ["tf-ecc", Boolean(data.watermark_found)],
+      ["tf-lookup", Boolean(data.session_id && !["UNKNOWN", "UNRECORDED"].includes(data.session_id))],
+      ["tf-dsa", Boolean(data.signature_valid)],
+      ["tf-merkle", Boolean(data.merkle_proof_valid && data.block_valid)],
+      ["tf-quorum", Boolean(data.validator_quorum_valid)],
+      ["tf-attr", Boolean(data.verified)],
     ];
+    stages.forEach(([id, passed]) => { byId(id).className = `flow-step ${passed ? "done" : "failed"}`; });
 
-    // Reset flow items
-    flowSteps.forEach(s => {
-      const el = document.getElementById(s.id);
-      el.className = "flow-step";
-    });
-
-    setPipelineStep("p-authenticate", "active");
-
-    // Animate flow sequentially
-    for (let i = 0; i < 4; i++) {
-      const step = flowSteps[i];
-      const el = document.getElementById(step.id);
-      el.className = "flow-step active";
-      await new Promise(r => setTimeout(r, step.delay));
-      el.className = "flow-step done";
+    if (checks) {
+      byId("trace-rec").textContent = data.recipient;
+      byId("trace-sess").textContent = data.session_id;
+      byId("trace-wmid").textContent = data.watermark_id;
+      byId("trace-doc-match").textContent = data.document_match;
+      byId("trace-sig").textContent = data.signature_valid ? "VALID" : "INVALID";
+      byId("trace-merkle").textContent = data.merkle_proof_valid ? "VALID" : "INVALID";
+      byId("trace-quorum").textContent = `${data.validator_quorum}${data.validator_quorum_valid ? " • VALID" : " • FAILED"}`;
+      byId("trace-block").textContent = `#${data.block_height} • ${(data.block_hash || "").slice(0, 12)}…`;
+      byId("trace-ber").textContent = data.bit_error_rate;
+      byId("evidence-filename").textContent = data.evidence_json_filename;
+      byId("link-download-evidence").href = data.evidence_json_url;
+      byId("btn-modal-download").href = data.evidence_json_url;
+    } else {
+      byId("trace-fail-wm").textContent = data.watermark_id || "NOT FOUND";
+      byId("trace-fail-doc").textContent = data.document_match || "NOT VERIFIED";
+      byId("trace-fail-subtitle").textContent = data.attribution_status || "Verification failed";
+      byId("trace-fail-recipient").textContent = data.recipient || "UNKNOWN";
     }
+    evidenceBundle = data.evidence_bundle || null;
+    evidenceReport = data.evidence_report || "";
+  }
 
-    setPipelineStep("p-authenticate", "completed");
-    setPipelineStep("p-commit", "active");
+  async function encrypt() {
+    const recipients = ["rec-001", "rec-002", "rec-047"].filter((id) => byId(id).checked).map((id) => id.toUpperCase().replace("-", "-"));
+    if (!recipients.length) throw new Error("Select at least one recipient before encrypting.");
+    const result = await postJSON("/api/encrypt", { recipients });
+    byId("enc-doc-hash").textContent = result.document_hash;
+    byId("enc-recipients").textContent = result.capsule_recipients.join(", ");
+    byId("enc-pkg-path").textContent = result.package_path;
+    byId("enc-signature").textContent = result.sender_signature_present ? "Manifest signature created" : "Manifest signature missing";
+    byId("encrypt-result").hidden = false;
+    setPipeline(["p-encrypt", "p-distribute"], "completed");
+    return result;
+  }
 
-    fetch("/api/decrypt", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        recipient_id: recipientId,
-        faulty_validators: faultyValidators
-      })
-    })
-      .then(res => res.json())
-      .then(async data => {
-        btnDecrypt.disabled = false;
+  async function decrypt() {
+    const recipient = byId("decrypt-recipient-select").value;
+    const faultValue = byId("faulty-validator-select").value;
+    const faultyValidators = faultValue ? faultValue.split(",") : [];
+    const result = await postJSON("/api/decrypt", { recipient_id: recipient, faulty_validators: faultyValidators });
+    ["df-auth", "df-sess", "df-sign", "df-ledger", "df-quorum", "df-commit", "df-watermark", "df-release"].forEach((id) => byId(id).className = "flow-step done");
+    setPipeline(["p-authenticate", "p-commit", "p-watermark", "p-release"], "completed");
+    byId("dec-rec").textContent = result.recipient_id;
+    byId("dec-sess").textContent = result.session_id;
+    byId("dec-wmid").textContent = result.watermark_id;
+    byId("dec-block").textContent = `#${result.block_height}`;
+    byId("dec-quorum").textContent = `${result.quorum_count} • ${result.validator_signature_count} signatures`;
+    byId("ledger-height").textContent = `Ledger height ${result.block_height}`;
+    byId("dec-sig").textContent = result.signature_valid ? "ACCEPTED AT COMMIT" : "NOT VERIFIED";
+    byId("decrypt-result").hidden = false;
+    setImage("dec-img-preview", result.image_url);
+    byId("decrypt-flow").hidden = false;
+    byId("decrypt-error").hidden = true;
+    byId("pipeline-status-chip").textContent = "PROVENANCE COMMITTED • RELEASE AUTHORIZED";
+    byId("pipeline-status-chip").className = "chip chip-success";
+    return result;
+  }
 
-        if (!data.success) {
-          // Invariant violation or quorum error
-          setPipelineStep("p-commit", "");
-          document.getElementById("dec-error-text").textContent = data.error;
-          document.getElementById("decrypt-error").style.display = "block";
-          document.getElementById("df-quorum").className = "flow-step active";
-          document.getElementById("df-quorum").textContent = "5. QUORUM FAILURE: COMMIT HALTED";
-          document.getElementById("df-release").textContent = "7. RELEASE ABORTED (NO PLAINTEXT RELEASED)";
-          return;
-        }
+  async function simulateLeak() {
+    const result = await postJSON("/api/simulate-leak", {
+      attack: byId("leak-attack-select").value,
+      recipient_id: byId("decrypt-recipient-select").value,
+    });
+    setPipelineStep("p-leak", "completed");
+    byId("leak-caption").textContent = `Simulated ${result.attack.toUpperCase()} • ${result.dimensions}`;
+    setImage("leak-img-preview", result.leak_url);
+    return result;
+  }
 
-        // Complete remaining flow steps
-        for (let i = 4; i < flowSteps.length; i++) {
-          const step = flowSteps[i];
-          const el = document.getElementById(step.id);
-          el.className = "flow-step active";
-          await new Promise(r => setTimeout(r, step.delay));
-          el.className = "flow-step done";
-        }
+  async function trace() {
+    const data = await postJSON("/api/trace", {});
+    setPipeline(["p-trace", "p-attribute"], data.verified ? "completed" : "failed");
+    renderTrace(data);
+    byId("trace-flow").hidden = false;
+    return data;
+  }
 
-        setPipelineStep("p-commit", "completed");
-        setPipelineStep("p-watermark", "completed");
-        setPipelineStep("p-release", "completed");
+  async function runAction(button, label, action) {
+    if (busy) return;
+    clearNotice();
+    setBusy(true, button, label);
+    try {
+      await action();
+    } catch (error) {
+      if (button === buttons.fullDemo) {
+        setPipeline(["p-encrypt", "p-distribute", "p-authenticate", "p-commit", "p-watermark", "p-release", "p-leak", "p-trace", "p-attribute"], "failed");
+      }
+      notice(error.message || "The operation failed. No success result was recorded.", "error");
+    } finally {
+      setBusy(false, button);
+    }
+  }
 
-        // Display results
-        document.getElementById("dec-rec").textContent = data.recipient_id;
-        document.getElementById("dec-sess").textContent = data.session_id;
-        document.getElementById("dec-wmid").textContent = data.watermark_id;
-        document.getElementById("dec-block").textContent = "#" + data.block_height;
-        document.getElementById("dec-quorum").textContent = data.quorum_count + " ✓";
+  buttons.encrypt.addEventListener("click", () => runAction(buttons.encrypt, "Encrypting locally…", async () => {
+    byId("encrypt-result").hidden = true;
+    setPipeline(["p-encrypt", "p-distribute"], "active");
+    const result = await encrypt();
+    notice(`Encrypted package created for ${result.capsule_recipients.length} recipient(s).`, "success");
+  }));
 
-        const decImg = document.getElementById("dec-img-preview");
-        decImg.src = data.image_url;
+  buttons.decrypt.addEventListener("click", () => runAction(buttons.decrypt, "Waiting for commit…", async () => {
+    byId("decrypt-result").hidden = true;
+    byId("decrypt-error").hidden = true;
+    byId("decrypt-flow").hidden = false;
+    resetFlow(["df-auth", "df-sess", "df-sign", "df-ledger", "df-quorum", "df-commit", "df-watermark", "df-release"]);
+    setPipeline(["p-authenticate", "p-commit", "p-watermark", "p-release"], "active");
+    try {
+      const result = await decrypt();
+      notice(`Ledger commit confirmed at block #${result.block_height}. Watermarked release authorized.`, "success");
+    } catch (error) {
+      byId("decrypt-error").hidden = false;
+      byId("dec-error-text").textContent = error.message;
+      if (error.type === "COMMIT_BEFORE_RELEASE_VIOLATION") {
+        ["df-auth", "df-sess", "df-sign", "df-ledger"].forEach((id) => byId(id).className = "flow-step done");
+        byId("df-quorum").className = "flow-step failed";
+        ["df-commit", "df-watermark", "df-release"].forEach((id) => byId(id).className = "flow-step failed");
+        setPipelineStep("p-authenticate", "completed");
+        setPipelineStep("p-commit", "failed");
+        setPipelineStep("p-watermark", "failed");
+        setPipelineStep("p-release", "failed");
+      } else {
+        byId("df-auth").className = "flow-step failed";
+        byId("df-release").className = "flow-step failed";
+        setPipelineStep("p-authenticate", "failed");
+        setPipelineStep("p-release", "failed");
+      }
+      byId("df-release").textContent = "RELEASE NOT AUTHORIZED";
+      notice(error.message, "error");
+    }
+  }));
 
-        const leakImg = document.getElementById("leak-img-preview");
-        leakImg.src = data.leak_url;
-
-        document.getElementById("decrypt-result").style.display = "block";
-      })
-      .catch(err => {
-        btnDecrypt.disabled = false;
-        alert("Decryption exception: " + err.message);
-      });
-  });
-
-  // STEP 3: SIMULATE LEAK ATTACK
-  btnApplyLeak.addEventListener("click", () => {
-    const attack = document.getElementById("leak-attack-select").value;
-    const recipientId = document.getElementById("decrypt-recipient-select").value;
-
-    btnApplyLeak.disabled = true;
+  buttons.leak.addEventListener("click", () => runAction(buttons.leak, "Simulating leak…", async () => {
     setPipelineStep("p-leak", "active");
+    const result = await simulateLeak();
+    notice(`Leak simulation complete (${result.attack}).`, "success");
+  }));
 
-    fetch("/api/simulate-leak", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ attack: attack, recipient_id: recipientId })
-    })
-      .then(res => res.json())
-      .then(data => {
-        btnApplyLeak.disabled = false;
-        if (!data.success) {
-          alert("Simulation failed: " + data.error);
-          return;
-        }
-        setPipelineStep("p-leak", "completed");
-        const leakImg = document.getElementById("leak-img-preview");
-        leakImg.src = data.leak_url;
-        document.getElementById("leak-caption").textContent = `Simulated Leak (${attack.toUpperCase()} | ${data.dimensions})`;
-      })
-      .catch(err => {
-        btnApplyLeak.disabled = false;
-        alert("Leak simulation error: " + err.message);
-      });
-  });
-
-  // STEP 4: FORENSIC ATTRIBUTION (THE MAIN WOW MOMENT)
-  btnTrace.addEventListener("click", async () => {
-    btnTrace.disabled = true;
-    document.getElementById("trace-result-success").style.display = "none";
-    document.getElementById("trace-result-failed").style.display = "none";
-
-    const flowBox = document.getElementById("trace-flow");
-    flowBox.style.display = "block";
-
-    const traceSteps = [
-      { id: "tf-extract", delay: 350 },
-      { id: "tf-ecc", delay: 250 },
-      { id: "tf-lookup", delay: 350 },
-      { id: "tf-dsa", delay: 300 },
-      { id: "tf-merkle", delay: 300 },
-      { id: "tf-quorum", delay: 300 },
-      { id: "tf-attr", delay: 200 }
-    ];
-
-    traceSteps.forEach(s => {
-      document.getElementById(s.id).className = "flow-step";
-    });
-
+  buttons.trace.addEventListener("click", () => runAction(buttons.trace, "Verifying evidence…", async () => {
+    hideTraceResults();
+    byId("trace-flow").hidden = false;
+    resetFlow(["tf-extract", "tf-ecc", "tf-lookup", "tf-dsa", "tf-merkle", "tf-quorum", "tf-attr"]);
     setPipelineStep("p-trace", "active");
+    const result = await trace();
+    notice(result.verified ? `Attribution verified for ${result.recipient}.` : "Attribution could not be verified. Review the failed checks below.", result.verified ? "success" : "error");
+  }));
 
-    for (let i = 0; i < 3; i++) {
-      const step = traceSteps[i];
-      const el = document.getElementById(step.id);
-      el.className = "flow-step active";
-      await new Promise(r => setTimeout(r, step.delay));
-      el.className = "flow-step done";
-    }
+  buttons.fullDemo.addEventListener("click", () => runAction(buttons.fullDemo, "Running full demo…", async () => {
+    clearResults();
+    ["p-encrypt", "p-distribute", "p-authenticate", "p-commit", "p-watermark", "p-release", "p-leak", "p-trace"].forEach((id) => setPipelineStep(id, "active"));
+    const result = await postJSON("/api/run-full-demo", {});
+    const enc = result.step_encrypt;
+    const dec = result.step_decrypt;
+    const tr = result.step_trace;
+    byId("enc-doc-hash").textContent = enc.doc_hash;
+    byId("enc-recipients").textContent = enc.recipients.join(", ");
+    byId("enc-pkg-path").textContent = result.package_path;
+    byId("enc-signature").textContent = enc.sender_signature_present ? "Manifest signature created" : "Manifest signature missing";
+    byId("encrypt-result").hidden = false;
+    byId("dec-rec").textContent = dec.recipient;
+    byId("dec-sess").textContent = dec.session_id;
+    byId("dec-wmid").textContent = dec.watermark_id;
+    byId("dec-block").textContent = `#${dec.block_height}`;
+    byId("dec-quorum").textContent = `${dec.quorum} • ${dec.validator_signature_count} signatures`;
+    byId("ledger-height").textContent = `Ledger height ${result.ledger_height}`;
+    byId("dec-sig").textContent = dec.signature_valid ? "ACCEPTED AT COMMIT" : "NOT VERIFIED";
+    byId("decrypt-result").hidden = false;
+    byId("decrypt-flow").hidden = false;
+    ["df-auth", "df-sess", "df-sign", "df-ledger", "df-quorum", "df-commit", "df-watermark", "df-release"].forEach((id) => byId(id).className = "flow-step done");
+    setImage("dec-img-preview", `/api/image/decrypted?recipient=REC-047&t=${Date.now()}`);
+    setImage("leak-img-preview", `/api/image/leaked?t=${Date.now()}`);
+    byId("leak-caption").textContent = "Simulated screenshot capture • generated by full demo";
+    byId("trace-flow").hidden = false;
+    renderTrace(tr);
+    byId("trace-flow").hidden = false;
+    setPipeline(["p-encrypt", "p-distribute", "p-authenticate", "p-commit", "p-watermark", "p-release", "p-leak", "p-trace", "p-attribute"], tr.verified ? "completed" : "failed");
+    notice(tr.verified ? `Full demo completed. Attribution verified for ${tr.recipient}.` : "Full demo ran, but attribution was not verified.", tr.verified ? "success" : "error");
+  }));
 
-    fetch("/api/trace", { method: "POST" })
-      .then(res => res.json())
-      .then(async data => {
-        btnTrace.disabled = false;
+  buttons.refresh.addEventListener("click", () => runAction(buttons.refresh, "Checking local service…", async () => {
+    const data = await refreshStatus();
+    notice(`Local service ready. Ledger height ${data.ledger_height}.`, "success");
+  }));
 
-        if (!data.success) {
-          alert("Trace failed: " + data.error);
-          setPipelineStep("p-trace", "");
-          return;
-        }
-
-        // Finish remaining step flow
-        for (let i = 3; i < traceSteps.length; i++) {
-          const step = traceSteps[i];
-          const el = document.getElementById(step.id);
-          el.className = "flow-step active";
-          await new Promise(r => setTimeout(r, step.delay));
-          el.className = "flow-step done";
-        }
-
-        if (data.verified && data.attribution_status === "VERIFIED") {
-          setPipelineStep("p-trace", "completed");
-          setPipelineStep("p-attribute", "completed");
-
-          document.getElementById("pipeline-status-chip").textContent = `ATTRIBUTION VERIFIED: ${data.recipient}`;
-          document.getElementById("pipeline-status-chip").className = "chip chip-success";
-
-          // Populate Result Card
-          document.getElementById("trace-rec").textContent = data.recipient;
-          document.getElementById("trace-sess").textContent = data.session_id;
-          document.getElementById("trace-wmid").textContent = data.watermark_id;
-          document.getElementById("trace-doc-match").textContent = `✓ ${data.document_match}`;
-          document.getElementById("trace-sig").textContent = `✓ ${data.signature_valid}`;
-          document.getElementById("trace-merkle").textContent = `✓ ${data.merkle_proof_valid}`;
-          document.getElementById("trace-quorum").textContent = `✓ ${data.validator_quorum}`;
-          document.getElementById("trace-block").textContent = `#${data.block_height} (${data.block_hash.slice(0, 12)}...)`;
-          document.getElementById("trace-ber").textContent = data.bit_error_rate;
-
-          // Evidence links
-          document.getElementById("evidence-filename").textContent = data.evidence_json_filename;
-          linkDownloadEvidence.href = data.evidence_json_url;
-          btnModalDownload.href = data.evidence_json_url;
-
-          currentEvidenceBundle = data.evidence_bundle;
-          currentEvidenceReport = data.evidence_report;
-
-          document.getElementById("trace-result-success").style.display = "block";
-          document.getElementById("card-trace").className = "card full-width forensic-hero verified";
-
-        } else {
-          setPipelineStep("p-trace", "completed");
-          setPipelineStep("p-attribute", "");
-
-          document.getElementById("pipeline-status-chip").textContent = "ATTRIBUTION NOT VERIFIED";
-          document.getElementById("pipeline-status-chip").className = "chip chip-danger";
-
-          document.getElementById("trace-fail-wm").textContent = data.watermark_id || "NOT FOUND";
-          document.getElementById("trace-fail-doc").textContent = data.document_match;
-          document.getElementById("trace-fail-subtitle").textContent = data.attribution_status;
-
-          document.getElementById("trace-result-failed").style.display = "block";
-          document.getElementById("card-trace").className = "card full-width forensic-hero failed";
-        }
-      })
-      .catch(err => {
-        btnTrace.disabled = false;
-        alert("Trace error: " + err.message);
-      });
+  buttons.viewEvidence.addEventListener("click", () => {
+    if (!evidenceBundle) return;
+    byId("modal-evidence-content").textContent = `${evidenceReport}\n\n${"=".repeat(72)}\nMACHINE-READABLE JSON EVIDENCE\n${"=".repeat(72)}\n${JSON.stringify(evidenceBundle, null, 2)}`;
+    byId("evidence-modal").classList.add("open");
+    byId("evidence-modal").setAttribute("aria-hidden", "false");
+    buttons.closeModal.focus();
   });
 
-  // MODAL LOGIC
-  btnViewEvidence.addEventListener("click", () => {
-    if (!currentEvidenceReport && !currentEvidenceBundle) return;
-    const jsonStr = JSON.stringify(currentEvidenceBundle, null, 2);
-    modalContent.textContent = currentEvidenceReport + "\n\n" + "=".repeat(80) + "\nJSON EVIDENCE BUNDLE (MACHINE-READABLE):\n" + "=".repeat(80) + "\n" + jsonStr;
-    evidenceModal.classList.add("open");
-  });
+  function closeEvidence() {
+    byId("evidence-modal").classList.remove("open");
+    byId("evidence-modal").setAttribute("aria-hidden", "true");
+    buttons.viewEvidence.focus();
+  }
+  buttons.closeModal.addEventListener("click", closeEvidence);
+  byId("evidence-modal").addEventListener("click", (event) => { if (event.target === byId("evidence-modal")) closeEvidence(); });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape" && byId("evidence-modal").classList.contains("open")) closeEvidence(); });
 
-  btnCloseModal.addEventListener("click", () => {
-    evidenceModal.classList.remove("open");
-  });
-
-  evidenceModal.addEventListener("click", (e) => {
-    if (e.target === evidenceModal) {
-      evidenceModal.classList.remove("open");
-    }
-  });
-
-  // ONE-CLICK LIVE DEMO
-  btnFullDemo.addEventListener("click", async () => {
-    btnFullDemo.disabled = true;
-    btnFullDemo.innerHTML = "<span>⏳</span> RUNNING LIVE DEMO...";
-
-    // Step 1: Encrypt
-    btnEncrypt.click();
-    await new Promise(r => setTimeout(r, 1200));
-
-    // Step 2: Decrypt
-    btnDecrypt.click();
-    await new Promise(r => setTimeout(r, 3500));
-
-    // Step 3: Trace
-    btnTrace.click();
-    await new Promise(r => setTimeout(r, 3000));
-
-    btnFullDemo.disabled = false;
-    btnFullDemo.innerHTML = "<span>⚡</span> RUN FULL DEMO";
+  clearResults();
+  refreshStatus().catch((error) => {
+    byId("service-status").textContent = "LOCAL SERVICE UNAVAILABLE";
+    byId("service-status").className = "chip chip-danger";
+    notice(error.message, "error");
   });
 });

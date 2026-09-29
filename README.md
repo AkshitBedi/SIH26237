@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-This repository contains the complete, working national-level prototype for **SIH Problem Statement 26237**: an air-gapped cryptographic pipeline linking encrypted multi-recipient document distribution to immutable, recipient-specific decryption provenance and invisible forensic watermark attribution.
+This repository contains a working prototype for **SIH Problem Statement 26237**: an offline-capable cryptographic pipeline linking encrypted multi-recipient document distribution to recipient-specific decryption provenance and invisible forensic watermark attribution. The ledger is designed to be tamper-evident; the prototype does not claim physical immutability.
 
 ```
 ENCRYPT (ML-KEM-768 + AES-256-GCM)
@@ -44,6 +44,7 @@ Run the complete 8-step interactive CLI demo in one command:
 ```bash
 python demo/run_demo.py
 ```
+Each run gets a new directory under `demo/runs/`; earlier demo artifacts are preserved. The script stops on the first failed command and prints the run directory for inspection.
 
 ### Run Automated Security Test Suite (43 Tests)
 ```bash
@@ -59,7 +60,7 @@ python benchmarks/run_watermark_benchmark.py
 
 ## 3. Local Web Demonstration
 
-The prototype features a complete, air-gapped web console built with Python Flask and vanilla JavaScript.
+The prototype includes a local web console built with Python Flask and vanilla JavaScript. It binds to `127.0.0.1` and does not call cloud services. The console can run without network access once its Python dependencies are installed; its local-only status is not proof that the host operating system or network is isolated.
 
 ### Environment Setup & Start Command
 
@@ -72,7 +73,7 @@ python -m venv .venv
 # Linux/macOS:
 # source .venv/bin/activate
 
-# 2. Install pinned dependencies (fully offline capable)
+# 2. Install minimum-version dependencies (use a local wheelhouse on an air-gapped machine)
 pip install -r requirements.txt
 
 # 3. Start the local security console
@@ -88,16 +89,20 @@ http://127.0.0.1:5000
 
 For live evaluations, follow this simple walkthrough:
 
-1. **Open Dashboard**: Navigate to `http://127.0.0.1:5000`. Observe the NIST PQC stack and air-gapped status indicators.
+1. **Open Dashboard**: Navigate to `http://127.0.0.1:5000`. Observe the PQC stack and `LOCAL ONLY • LOOPBACK` service indicator.
 2. **Select Document**: Confirm `confidential_brief.png` is selected in **SECURE DOCUMENT DISTRIBUTION**.
 3. **Select Recipients**: Keep `REC-001`, `REC-002`, and `REC-047` checked.
 4. **Encrypt & Distribute**: Click `[ ENCRYPT & DISTRIBUTE ]`. Observe single AES-256-GCM ciphertext creation, ML-KEM-768 key encapsulation, and SHA3-256 document hash.
 5. **Decrypt & Commit**: In **CONTROLLED DECRYPTION**, select recipient `REC-047` and click `[ DECRYPT & COMMIT ]`.
-6. **Observe Commit-Before-Release**: Watch the live sequence enforce ML-DSA challenge authentication, provenance signing, and 4-of-5 validator consensus on the offline ledger before releasing the watermarked document.
-7. **Show Validator Quorum**: Verify `Validator Quorum: 5/5 ✓` and note the unique `Session ID` and `Watermark ID`.
+6. **Observe Commit-Before-Release**: After the backend operation completes, review the reported sequence: recipient authentication, provenance signing, validator signatures, ledger commit, watermarking, and release. The UI does not claim per-stage live progress.
+7. **Show Validator Quorum**: Read the signature count returned by the ledger and note the actual `Session ID` and `Watermark ID`.
 8. **Simulate Leak**: In **FORENSIC ATTRIBUTION**, choose an attack (e.g. `Screen Capture / LCD Re-encode` or `JPEG Q70`) and click `[ SIMULATE LEAK ATTACK ]`.
 9. **Trace Leak**: Click `[ TRACE LEAK & IDENTIFY RECIPIENT ]`. Watch the automated pipeline extract the watermark, query the ledger, and verify the cryptographic proofs.
-10. **Verify Attribution & Evidence**: Observe the large green `ATTRIBUTION VERIFIED` banner displaying `Recipient: REC-047`, `ML-DSA Signature: VALID`, `Merkle Proof: VALID`, and `Validator Quorum: 5/5`. Click `[ VIEW EVIDENCE ]` to inspect the verifiable JSON evidence bundle.
+10. **Verify Attribution & Evidence**: A green `ATTRIBUTION VERIFIED` banner appears only when the backend reports all required checks passed. Review the actual recipient, signature, Merkle proof, validator quorum, and evidence bundle values.
+
+### Security boundary
+
+Commit-before-release is enforced by the application workflow. A recipient controlling a compromised endpoint could extract plaintext from memory. Variant-Segment Encryption (VSE) is a documented production-hardening concept and is **not implemented** in this prototype.
 
 ---
 

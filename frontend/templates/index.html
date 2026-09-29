@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SIH 26237 | Cryptographic Attribution & Decryption Provenance</title>
+  <title>SIH 26237 | Auditable Decryption Provenance</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -14,20 +14,22 @@
       <div class="brand-group">
         <div class="brand-title">
           <span class="sih-badge">SIH 26237</span>
-          <span>Cryptographic Attribution & Immutable Decryption Provenance</span>
+          <span>Cryptographic Attribution & Auditable Decryption Provenance</span>
         </div>
-        <div class="brand-subtitle">AIR-GAPPED • POST-QUANTUM • TAMPER-EVIDENT</div>
+        <div class="brand-subtitle">OFFLINE-CAPABLE • POST-QUANTUM • TAMPER-EVIDENT</div>
       </div>
       <div class="header-actions">
         <div class="airgap-pill">
           <div class="pulsing-dot"></div>
-          <span>OFFLINE AIR-GAP ACTIVE</span>
+          <span>LOCAL ONLY • LOOPBACK</span>
         </div>
         <button id="btn-full-demo" class="btn btn-primary btn-sm">
           <span>⚡</span> RUN FULL DEMO
         </button>
-        <button id="btn-reset" class="btn btn-secondary btn-sm" title="Re-initialize Keystores and Demo Canvas">
-          <span>↺</span> RESET
+        <span id="service-status" class="chip chip-info" role="status">CHECKING LOCAL SERVICE</span>
+        <span id="ledger-height" class="service-detail">Ledger status pending</span>
+        <button id="btn-reset" class="btn btn-secondary btn-sm" title="Check local service and ledger status">
+          <span>↻</span> REFRESH STATUS
         </button>
       </div>
     </div>
@@ -35,16 +37,18 @@
 
   <div class="container">
 
+    <div id="app-notice" class="notice" role="alert" tabindex="-1" hidden></div>
+
     <!-- TOP SECURITY STACK CARD (INFORMATIONAL) -->
     <section class="security-stack-bar">
-      <div class="stack-title">NIST Post-Quantum Cryptographic Stack & Permissioned Consensus</div>
+      <div class="stack-title">Cryptographic Stack & Permissioned Consensus</div>
       <div class="stack-grid">
         <div class="stack-item">
           <div class="label">Key Encapsulation (KEM)</div>
           <div class="value">NIST FIPS 203 ML-KEM-768</div>
         </div>
         <div class="stack-item">
-          <div class="label">Digital Signatures (DSA)</div>
+          <div class="label">Digital Signatures</div>
           <div class="value">NIST FIPS 204 ML-DSA-65</div>
         </div>
         <div class="stack-item">
@@ -56,12 +60,12 @@
           <div class="value">SHA3-256 (NIST FIPS 202)</div>
         </div>
         <div class="stack-item">
-          <div class="label">Immutable DLT</div>
-          <div class="value">Offline Permissioned Ledger</div>
+          <div class="label">Tamper-Evident Ledger</div>
+          <div class="value">Offline • Permissioned</div>
         </div>
         <div class="stack-item">
-          <div class="label">Byzantine Consensus</div>
-          <div class="value">4-of-5 Validator Quorum</div>
+          <div class="label">Validator Threshold</div>
+          <div class="value">4 of 5 signatures required</div>
         </div>
       </div>
     </section>
@@ -72,7 +76,7 @@
         <div class="card-title">
           <span class="card-title-icon">◈</span> End-to-End Cryptographic & Provenance Pipeline
         </div>
-        <span class="chip chip-info" id="pipeline-status-chip">SYSTEM READY</span>
+        <span class="chip chip-info" id="pipeline-status-chip">READY • LOCAL SERVICE</span>
       </div>
       <div class="pipeline-track">
         <div class="pipeline-step" id="p-encrypt">
@@ -164,7 +168,7 @@
         </div>
 
         <!-- Encrypt Result Display -->
-        <div id="encrypt-result" class="result-box success" style="display:none;">
+        <div id="encrypt-result" class="result-box success" hidden>
           <div class="result-title" style="color:var(--status-success);">
             <span>✓</span> DOCUMENT ENCRYPTED & PACKAGED
           </div>
@@ -183,9 +187,9 @@
             </div>
           </div>
           <div style="display:flex; gap:8px; margin-top:12px;">
-            <span class="chip chip-success">AES-256-GCM ✓</span>
-            <span class="chip chip-success">ML-KEM-768 ✓</span>
-            <span class="chip chip-success">Sender ML-DSA-65 ✓</span>
+            <span class="chip chip-info">AES-256-GCM • payload</span>
+            <span class="chip chip-info">ML-KEM-768 • recipient capsules</span>
+            <span class="chip chip-info" id="enc-signature">Manifest signature pending</span>
           </div>
         </div>
       </section>
@@ -213,7 +217,7 @@
             <span>DOCUMENT RELEASED</span>
           </div>
           <div class="commit-gate-note">
-            "Commit-Before-Release Enforced: No official document release occurs before provenance commitment."
+            Software-level commit gate. A compromised endpoint can still expose plaintext from memory; VSE is not implemented.
           </div>
         </div>
 
@@ -240,18 +244,19 @@
         </button>
 
         <!-- Live Step Progression -->
-        <div id="decrypt-flow" class="status-flow-box" style="display:none;">
+        <div id="decrypt-flow" class="status-flow-box" hidden>
           <div class="flow-step" id="df-auth">1. AUTHENTICATING RECIPIENT (ML-DSA-65 CHALLENGE)</div>
           <div class="flow-step" id="df-sess">2. CREATING SESSION & WATERMARK ID</div>
           <div class="flow-step" id="df-sign">3. SIGNING PROVENANCE (ML-DSA-65 PRIVATE KEY)</div>
-          <div class="flow-step" id="df-ledger">4. COMMITTING TO OFFLINE PERMISSIONED LEDGER</div>
-          <div class="flow-step" id="df-quorum">5. 4-OF-5 VALIDATOR QUORUM ATTESTATION</div>
-          <div class="flow-step" id="df-watermark">6. EMBEDDING INVISIBLE FORENSIC WATERMARK</div>
-          <div class="flow-step" id="df-release">7. RELEASE AUTHORIZED</div>
+          <div class="flow-step" id="df-ledger">4. SUBMITTING SIGNED PROVENANCE TO VALIDATORS</div>
+          <div class="flow-step" id="df-quorum">5. COLLECTING 4-OF-5 VALIDATOR SIGNATURES</div>
+          <div class="flow-step" id="df-commit">6. COMMITTING RECORD TO LEDGER</div>
+          <div class="flow-step" id="df-watermark">7. EMBEDDING SESSION WATERMARK</div>
+          <div class="flow-step" id="df-release">8. RELEASING WATERMARKED DOCUMENT</div>
         </div>
 
         <!-- Decrypt Result Card -->
-        <div id="decrypt-result" class="result-box success" style="display:none;">
+        <div id="decrypt-result" class="result-box success" hidden>
           <div class="result-title" style="color:var(--status-success);">
             <span>✓</span> DECRYPTION AUTHORIZED & WATERMARKED
           </div>
@@ -270,7 +275,7 @@
             </div>
             <div class="result-cell">
               <div class="k">ML-DSA Signature</div>
-              <div class="v success-text" id="dec-sig">VALID ✓</div>
+            <div class="v success-text" id="dec-sig">--</div>
             </div>
             <div class="result-cell">
               <div class="k">Ledger Block Height</div>
@@ -278,19 +283,20 @@
             </div>
             <div class="result-cell">
               <div class="k">Validator Quorum</div>
-              <div class="v success-text" id="dec-quorum">5/5 ✓</div>
+            <div class="v success-text" id="dec-quorum">--</div>
             </div>
           </div>
           <div class="preview-box">
-            <img id="dec-img-preview" src="" alt="Decrypted Document Preview">
+            <div id="decrypted-empty" class="preview-empty">No released document yet. A preview appears after commit succeeds.</div>
+            <img id="dec-img-preview" alt="Watermarked released document preview" hidden>
             <div class="preview-caption">Released Plaintext Document with Embedded Session Watermark</div>
           </div>
         </div>
 
         <!-- Decrypt Error Card (For Invariant Violation) -->
-        <div id="decrypt-error" class="result-box danger" style="display:none;">
+        <div id="decrypt-error" class="result-box danger" hidden>
           <div class="result-title" style="color:var(--status-danger);">
-            <span>✗</span> COMMIT-BEFORE-RELEASE INVARIANT HALT
+            <span>!</span> DECRYPTION STOPPED • NO RELEASE AUTHORIZED
           </div>
           <div style="font-size:0.82rem; color:#fca5a5;" id="dec-error-text">
             Ledger commitment failed. Document release strictly aborted.
@@ -309,7 +315,7 @@
         <span class="chip chip-info">ONE-COMMAND TRACE PIPELINE</span>
       </div>
 
-      <div style="display:grid; grid-template-columns: 320px 1fr; gap:24px;">
+      <div class="trace-grid">
 
         <!-- Left: Leak Selection / Simulator -->
         <div>
@@ -329,8 +335,9 @@
           </button>
 
           <div class="preview-box">
-            <img id="leak-img-preview" src="/api/image/leaked" alt="Leaked File Preview">
-            <div class="preview-caption" id="leak-caption">Leaked Document (demo/leaks/leaked_document.png)</div>
+            <div id="leak-empty" class="preview-empty">No leak file yet. Decrypt and commit, then simulate a leak.</div>
+            <img id="leak-img-preview" alt="Simulated leaked document preview" hidden>
+            <div class="preview-caption" id="leak-caption">Simulated leak preview</div>
           </div>
 
           <div style="margin-top:16px;">
@@ -343,7 +350,7 @@
         <!-- Right: Trace Steps & Large Attribution Result Card -->
         <div>
           <!-- Trace Step Flow -->
-          <div id="trace-flow" class="status-flow-box" style="display:none; margin-top:0;">
+          <div id="trace-flow" class="status-flow-box" style="margin-top:0;" hidden>
             <div class="flow-step" id="tf-extract">1. TRANSFORM-DOMAIN WATERMARK EXTRACTION (BARKER SYNC LOCK)</div>
             <div class="flow-step" id="tf-ecc">2. FORWARD ERROR CORRECTION & CRC-16 INTEGRITY CHECK</div>
             <div class="flow-step" id="tf-lookup">3. OFFLINE PERMISSIONED LEDGER TRANSACTION QUERY</div>
@@ -354,11 +361,11 @@
           </div>
 
           <!-- SUCCESS RESULT CARD -->
-          <div id="trace-result-success" style="display:none;">
+          <div id="trace-result-success" hidden>
             <div class="forensic-banner verified">
               <h2>ATTRIBUTION VERIFIED</h2>
               <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">
-                Cryptographically Verifiable Provenance Anchored to Offline Permissioned Ledger
+                Evidence checks passed for this record in the local permissioned ledger
               </div>
             </div>
 
@@ -418,7 +425,7 @@
           </div>
 
           <!-- FAILED RESULT CARD -->
-          <div id="trace-result-failed" style="display:none;">
+          <div id="trace-result-failed" hidden>
             <div class="forensic-banner failed">
               <h2>ATTRIBUTION NOT VERIFIED</h2>
               <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;" id="trace-fail-subtitle">
@@ -436,7 +443,7 @@
               </div>
               <div class="result-cell">
                 <div class="k">Attributed Recipient</div>
-                <div class="v danger-text">UNKNOWN (None Assigned)</div>
+                <div class="v danger-text" id="trace-fail-recipient">UNKNOWN</div>
               </div>
             </div>
           </div>
@@ -449,7 +456,7 @@
   </div>
 
   <!-- MODAL FOR VIEWING EVIDENCE REPORT -->
-  <div id="evidence-modal" class="modal-backdrop">
+  <div id="evidence-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Cryptographic forensic evidence bundle" aria-hidden="true">
     <div class="modal-card">
       <div class="modal-header">
         <div style="font-weight:700; font-size:1rem; color:var(--accent-cyan); display:flex; align-items:center; gap:8px;">

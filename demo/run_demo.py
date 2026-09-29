@@ -1,16 +1,15 @@
-"""
-Turnkey End-to-End Demonstration Script for SIH Problem Statement 26237.
-Demonstrates the complete lifecycle:
-  ENCRYPT -> DISTRIBUTE -> AUTHENTICATE -> COMMIT-BEFORE-RELEASE -> WATERMARK -> LEAK -> TRACE -> ATTRIBUTE
-"""
+"""Run an isolated end-to-end demo without deleting earlier demo artifacts."""
 
 import os
 import sys
-import time
 import subprocess
-import shutil
+import time
 
-# Ensure working directory is project root
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 os.chdir(ROOT_DIR)
 sys.path.insert(0, ROOT_DIR)
@@ -22,89 +21,102 @@ def print_banner(step_num: int, title: str):
     print("=" * 80)
 
 
+def run_command(command, label):
+    child_env = os.environ.copy()
+    child_env["PYTHONIOENCODING"] = "utf-8"
+    result = subprocess.run(
+        command, capture_output=True, text=True, encoding="utf-8", errors="replace",
+        cwd=ROOT_DIR, env=child_env,
+    )
+    if result.stdout:
+        print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
+    if result.returncode:
+        if result.stderr:
+            print(result.stderr, file=sys.stderr, end="" if result.stderr.endswith("\n") else "\n")
+        raise RuntimeError(f"Demo stopped at {label} (exit code {result.returncode}).")
+    return result
+
+
 def main():
     print("=" * 80)
-    print("  SIH PROBLEM STATEMENT 26237: NATIONAL-LEVEL PROTOTYPE DEMONSTRATION")
-    print("  Cryptographic Attribution and Immutable Decryption Provenance")
+    print("  SIH PROBLEM STATEMENT 26237: LOCAL PROTOTYPE DEMONSTRATION")
+    print("  Cryptographic Attribution and Auditable Decryption Provenance")
     print("  Stack: NIST FIPS 203 ML-KEM-768 | FIPS 204 ML-DSA-65 | SHA3-256 | AES-256-GCM")
     print("=" * 80)
 
-    # Clean previous demo run artifacts
-    for d in ["demo/keystores", "demo/ledger_data", "demo/packages", "demo/decrypted", "demo/leaks", "demo/evidence"]:
-        shutil.rmtree(os.path.join(ROOT_DIR, d), ignore_errors=True)
+    run_id = time.strftime("%Y%m%d_%H%M%S") + f"_{time.time_ns() % 1_000_000:06d}"
+    run_dir = os.path.join("demo", "runs", run_id)
+    keystore_dir = os.path.join(run_dir, "keystores")
+    ledger_dir = os.path.join(run_dir, "ledger_data")
+    package_path = os.path.join(run_dir, "packages", "confidential_brief.pqcpack")
+    released_path = os.path.join(run_dir, "decrypted", "REC-047_document.png")
+    leaked_path = os.path.join(run_dir, "leaks", "leaked_document.png")
+    evidence_dir = os.path.join(run_dir, "evidence")
+    sample_path = os.path.join("demo", "sample_documents", "confidential_brief.png")
 
-    # STEP 1: Setup Environment and PQC Identities
-    print_banner(1, "Initialize Demo Environment & Local PQC Keystore")
-    res = subprocess.run([sys.executable, "-m", "src.cli.main", "setup-demo"], capture_output=True, text=True)
-    print(res.stdout)
+    def cli(*args):
+        return [
+            sys.executable, "-m", "src.cli.main",
+            "--keystore", keystore_dir,
+            "--ledger", ledger_dir,
+            *args,
+        ]
 
-    # STEP 2: Encrypt Document for Multi-Recipient Distribution
-    print_banner(2, "Encrypt Document for Multiple Recipients (REC-001, REC-002, REC-047)")
-    enc_cmd = [
-        sys.executable, "-m", "src.cli.main", "encrypt",
-        "--input", "demo/sample_documents/confidential_brief.png",
+    print(f"Run artifacts will be saved under: {run_dir}")
+
+    print_banner(1, "Initialize Isolated Demo Identities")
+    run_command(cli("setup-demo"), "identity setup")
+
+    print_banner(2, "Encrypt Document for REC-001, REC-002, and REC-047")
+    run_command(cli(
+        "encrypt", "--input", sample_path,
         "--recipients", "REC-001,REC-002,REC-047",
-        "--sender", "SENDER-HQ",
-        "--output", "demo/packages/confidential_brief.pqcpack"
-    ]
-    res = subprocess.run(enc_cmd, capture_output=True, text=True)
-    print(res.stdout)
+        "--sender", "SENDER-HQ", "--output", package_path,
+    ), "encryption")
 
-    # STEP 3: Display Distribution Package
-    print_banner(3, "Inspect Distribution Package Manifest")
-    dist_cmd = [sys.executable, "-m", "src.cli.main", "distribute", "--package", "demo/packages/confidential_brief.pqcpack"]
-    res = subprocess.run(dist_cmd, capture_output=True, text=True)
-    print(res.stdout)
+    print_banner(3, "Inspect Distribution Package")
+    run_command(cli("distribute", "--package", package_path), "package inspection")
 
-    # STEP 4: Recipient REC-047 Decrypts with Commit-Before-Release
-    print_banner(4, "Recipient REC-047 Decrypts via Commit-Before-Release Workflow")
-    dec_cmd = [
-        sys.executable, "-m", "src.cli.main", "decrypt",
-        "--package", "demo/packages/confidential_brief.pqcpack",
-        "--recipient", "REC-047",
-        "--output", "demo/decrypted/rec047_document.png"
-    ]
-    res = subprocess.run(dec_cmd, capture_output=True, text=True)
-    print(res.stdout)
+    print_banner(4, "REC-047 Decrypts Through Commit-Before-Release")
+    run_command(cli(
+        "decrypt", "--package", package_path,
+        "--recipient", "REC-047", "--output", released_path,
+    ), "decryption and ledger commit")
 
-    # STEP 5: Inspect Offline Permissioned Ledger
-    print_banner(5, "Inspect Offline Permissioned Ledger (4-of-5 Validator Consensus)")
-    ls_cmd = [sys.executable, "-m", "src.cli.main", "ledger-status"]
-    res = subprocess.run(ls_cmd, capture_output=True, text=True)
-    print(res.stdout)
+    print_banner(5, "Inspect Offline Permissioned Ledger")
+    run_command(cli("ledger-status"), "ledger verification")
 
-    # STEP 6: Simulate Exfiltration Leak (Screenshot + Recompression)
-    print_banner(6, "Simulate Real-World Leak (Screenshot / Display Re-Encoding)")
-    leak_cmd = [
+    print_banner(6, "Simulate Screenshot Leak")
+    run_command([
         sys.executable, "demo/simulate_leak.py",
-        "--input", "demo/decrypted/rec047_document.png",
+        "--input", released_path,
         "--attack", "screenshot",
-        "--output", "demo/leaks/leaked_document.png"
-    ]
-    res = subprocess.run(leak_cmd, capture_output=True, text=True)
-    print(res.stdout)
+        "--output", leaked_path,
+    ], "leak simulation")
 
-    # STEP 7: One-Command Forensic Attribution
-    print_banner(7, "Execute Forensic Attribution: trace demo/leaks/leaked_document.png")
-    trace_cmd = [sys.executable, "-m", "src.cli.main", "trace", "demo/leaks/leaked_document.png"]
-    res = subprocess.run(trace_cmd, capture_output=True, text=True)
-    print(res.stdout)
+    print_banner(7, "Trace Leak and Export Evidence")
+    run_command(cli(
+        "trace", leaked_path,
+        "--reference", sample_path,
+        "--evidence-dir", evidence_dir,
+    ), "forensic trace")
 
-    # STEP 8: Second Decryption Session Verification (Demonstrates Uniqueness)
-    print_banner(8, "Security Invariant: Demonstrate Fresh Session & Watermark ID on 2nd Decrypt")
-    dec2_cmd = [
-        sys.executable, "-m", "src.cli.main", "decrypt",
-        "--package", "demo/packages/confidential_brief.pqcpack",
+    print_banner(8, "Verify Fresh Session and Watermark IDs")
+    run_command(cli(
+        "decrypt", "--package", package_path,
         "--recipient", "REC-047",
-        "--output", "demo/decrypted/rec047_document_session2.png"
-    ]
-    res = subprocess.run(dec2_cmd, capture_output=True, text=True)
-    print(res.stdout)
+        "--output", os.path.join(run_dir, "decrypted", "REC-047_document_session2.png"),
+    ), "second decryption session")
 
     print("\n" + "=" * 80)
-    print("  [+] SIH PROTOTYPE DEMONSTRATION COMPLETE: ALL CRITICAL PATHS VERIFIED!")
+    print("  [+] DEMO COMPLETED: all commands exited successfully.")
+    print(f"  Artifacts preserved at: {os.path.abspath(run_dir)}")
     print("=" * 80)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (OSError, RuntimeError) as error:
+        print(f"[-] {error}", file=sys.stderr)
+        sys.exit(1)
