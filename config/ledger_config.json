@@ -1,0 +1,37 @@
+{
+  "ledger_name": "SIH-26237-OFFLINE-LEDGER",
+  "version": "1.0",
+  "consensus_model": "Permissioned 4-of-5 Quorum",
+  "total_validators": 5,
+  "quorum_threshold": 4,
+  "byzantine_fault_tolerance": "1 faulty/offline validator tolerated",
+  "hash_algorithm": "NIST FIPS 202 SHA3-256",
+  "signature_algorithm": "NIST FIPS 204 ML-DSA-65",
+  "validators": [
+    {
+      "id": "VAL-01",
+      "role": "Primary Validator Node",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "VAL-02",
+      "role": "Consortium Validator Node",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "VAL-03",
+      "role": "Consortium Validator Node",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "VAL-04",
+      "role": "Consortium Validator Node",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "VAL-05",
+      "role": "Auditor Validator Node",
+      "status": "ACTIVE"
+    }
+  ]
+}

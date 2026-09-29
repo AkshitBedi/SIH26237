@@ -1,0 +1,23 @@
+{
+  "description": "Example registered recipient configuration for SIH-26237 prototype",
+  "recipients": [
+    {
+      "recipient_id": "REC-001",
+      "designation": "Command Operational Cell - Alpha",
+      "pqc_kem_algorithm": "NIST FIPS 203 ML-KEM-768",
+      "pqc_dsa_algorithm": "NIST FIPS 204 ML-DSA-65"
+    },
+    {
+      "recipient_id": "REC-002",
+      "designation": "Tactical Intelligence Unit - Bravo",
+      "pqc_kem_algorithm": "NIST FIPS 203 ML-KEM-768",
+      "pqc_dsa_algorithm": "NIST FIPS 204 ML-DSA-65"
+    },
+    {
+      "recipient_id": "REC-047",
+      "designation": "Strategic Air-Gap Operational Terminal",
+      "pqc_kem_algorithm": "NIST FIPS 203 ML-KEM-768",
+      "pqc_dsa_algorithm": "NIST FIPS 204 ML-DSA-65"
+    }
+  ]
+}
