@@ -35,10 +35,9 @@ ENV/
 *.private
 *private_key*
 *privkey*
-/keystore/private/
-/data/keystore/private/
-/demo/keystores/*/private/
-/demo/keystores/*_private.json
+/keystore/
+/data/keystore/
+/demo/keystores/
 /data/ledger/
 /demo/ledger_data/
 /demo/decrypted/
@@ -47,8 +46,9 @@ ENV/
 /demo/evidence/
 *.pqcpack
 
-# Generated benchmark images
+# Generated benchmark & demo image artifacts
 benchmarks/*.png
+demo/sample_documents/*.png
 
 # IDE & OS
 .vscode/
