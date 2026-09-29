@@ -1,6 +1,6 @@
 """
 Flask Backend Application for SIH Problem Statement 26237.
-Cryptographic Attribution & Immutable Decryption Provenance Console.
+Cryptographic Attribution & Auditable Decryption Provenance Console.
 Directly interfaces with the existing tested backend cryptographic modules.
 """
 

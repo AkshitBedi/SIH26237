@@ -1,17 +1,17 @@
 # Offline & Air-Gapped Deployment Guide
 
-**Project**: Cryptographic Attribution and Immutable Decryption Provenance for Multi-Recipient Encrypted Document Distribution  
+**Project**: Cryptographic Attribution and Auditable Decryption Provenance for Multi-Recipient Encrypted Document Distribution
 **Problem Statement**: SIH PS 26237  
 
 ---
 
-## 1. Zero Cloud Dependency Guarantee
+## 1. Local and Offline Operation
 
-This prototype operates 100% locally and air-gapped:
+The web console binds to `127.0.0.1` and makes no cloud/API calls. It can run without network access after dependencies are installed. Loopback binding alone does not establish that the host or surrounding network is air-gapped.
 - **No Cloud KMS**: Keys generated and stored in local filesystem keystore (`data/keystore/` or `demo/keystores/`).
 - **No Cloud Databases**: State persisted in deterministic local JSON ledgers (`data/ledger/blockchain.json`).
 - **No Public Blockchain**: Self-contained 5-validator permissioned ledger running locally.
-- **No Internet Access Required**: All cryptographic verification (ML-KEM, ML-DSA, SHA3-256, AES-GCM) is performed via local native libraries.
+- **Offline Cryptography**: ML-KEM, ML-DSA, SHA3-256, and AES-GCM operations use locally installed libraries. Prepare and transfer a wheelhouse when installing on a disconnected machine.
 
 ---
 
@@ -22,7 +22,7 @@ This prototype operates 100% locally and air-gapped:
 - **Core Libraries**:
   - `cryptography >= 50.0.1` (provides native NIST FIPS 203 ML-KEM and FIPS 204 ML-DSA)
   - `numpy >= 2.0.0`
-  - `opencv-python >= 5.0.0`
+  - `opencv-python >= 4.12.0`
   - `pillow >= 10.0.0`
   - `rich >= 13.0.0`
 

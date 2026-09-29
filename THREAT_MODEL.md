@@ -1,6 +1,6 @@
 # Threat Model & Security Architecture
 
-**Project**: Cryptographic Attribution and Immutable Decryption Provenance for Multi-Recipient Encrypted Document Distribution  
+**Project**: Cryptographic Attribution and Auditable Decryption Provenance for Multi-Recipient Encrypted Document Distribution
 **Problem Statement**: SIH PS 26237  
 **Classification**: Prototype Security Specification  
 
@@ -25,7 +25,7 @@ Instead, we employ precise, measurable terminology:
 | :--- | :--- | :--- |
 | **Document Plaintext** | Classified intellectual property or operational directives. | Confidentiality against unauthorized parties and non-recipients. |
 | **Decryption Material** | AES-256-GCM symmetric content keys and ML-KEM capsules. | Restricted exclusively to authenticated, intended recipients. |
-| **Provenance Ledger** | Append-only sequence of signed decryption events. | Immutability, non-repudiation, and auditability. |
+| **Provenance Ledger** | Hash-linked sequence of signed decryption events. | Tamper evidence, signature verification, and auditability. |
 | **Forensic Attribution** | Mathematical mapping between leaked visual artifacts and decrypting recipient. | Accountability and non-deniability. |
 
 ---
@@ -40,7 +40,7 @@ Instead, we employ precise, measurable terminology:
   3. Denies having decrypted or accessed the document.
 - **System Defense**:
   - Transform-domain mid-frequency DCT differential modulation survives heavy compression, resizing, and cropping.
-  - Recipient’s post-quantum ML-DSA-65 signature on the canonical decryption record in the ledger provides irrefutable non-repudiation.
+  - Recipient’s post-quantum ML-DSA-65 signature on the canonical decryption record provides verifiable signed provenance, assuming the signing key remains under the recipient’s control.
 
 ### Threat Vector B: Compromised / Byzantine Validator Node
 - **Profile**: 1 of the 5 permissioned validator nodes is rogue, offline, or compromised.
@@ -97,5 +97,5 @@ In a true air-gapped system, external NTP/GPS time servers are unavailable and l
 
 **Our Time Architecture**:
 1. Individual transaction timestamps represent the local time attested by the decrypting client.
-2. The authoritative global sequence of events is governed **strictly by ledger block height**, which provides deterministic, immutable partial ordering.
+2. The authoritative global sequence of events is governed **strictly by ledger block height**, which provides deterministic event ordering that is tamper-evident under block-hash and validator-signature verification.
 3. Validators enforce monotonic block sequence: `block[n].height == block[n-1].height + 1`.

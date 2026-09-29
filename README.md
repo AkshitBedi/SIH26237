@@ -1,4 +1,4 @@
-# Cryptographic Attribution and Immutable Decryption Provenance for Multi-Recipient Encrypted Document Distribution
+# Cryptographic Attribution and Auditable Decryption Provenance for Multi-Recipient Encrypted Document Distribution
 
 **SIH Problem Statement 26237** | **National-Level Working Prototype**  
 **Repository**: [AkshitBedi/SIH26237](https://github.com/AkshitBedi/SIH26237)  

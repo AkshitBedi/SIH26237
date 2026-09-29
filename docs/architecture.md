@@ -1,13 +1,13 @@
 # System Architecture Specification
 
-**Project**: Cryptographic Attribution and Immutable Decryption Provenance for Multi-Recipient Encrypted Document Distribution  
+**Project**: Cryptographic Attribution and Auditable Decryption Provenance for Multi-Recipient Encrypted Document Distribution
 **Problem Statement**: SIH PS 26237  
 
 ---
 
 ## 1. High-Level Architecture Overview
 
-The system provides an immutable, cryptographically verifiable provenance chain linking decrypted documents to individual recipient sessions using NIST-standardized Post-Quantum Cryptography (PQC), transform-domain invisible watermarking, and an offline permissioned Distributed Ledger Technology (DLT).
+The system creates a cryptographically verifiable, tamper-evident provenance chain linking decrypted documents to recipient sessions using NIST-standardized Post-Quantum Cryptography (PQC), transform-domain watermarking, and an offline permissioned ledger.
 
 ```mermaid
 graph TD
